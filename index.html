@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patch — Audio, visualized</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@200,300,400,500,600,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e5e5e5;
+            font-family: 'Clash Grotesk', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- Nav --- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .nav-wordmark {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        .nav-cta {
+            display: inline-block;
+            padding: 10px 24px;
+            background: #2ECBAB;
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .nav-cta:hover {
+            opacity: 0.85;
+        }
+
+        /* --- Hero --- */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 48px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #hero-canvas {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translate(-45%, -50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: clamp(72px, 12vw, 160px);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 0.9;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .hero p {
+            font-size: clamp(18px, 2.5vw, 24px);
+            font-weight: 400;
+            color: #888;
+            max-width: 460px;
+            line-height: 1.5;
+            margin-bottom: 48px;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            padding: 14px 36px;
+            background: #E85B6F;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .hero-cta:hover {
+            opacity: 0.85;
+        }
+
+        /* --- Sections --- */
+        section {
+            padding: 120px 48px;
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #2ECBAB;
+            margin-bottom: 48px;
+        }
+
+        /* --- How it works --- */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 48px;
+        }
+
+        .step-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #2ECBAB;
+            margin-bottom: 16px;
+            letter-spacing: -0.03em;
+        }
+
+        .step h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 15px;
+            color: #777;
+            line-height: 1.6;
+        }
+
+        /* --- Styles preview --- */
+        .styles-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .style-card {
+            aspect-ratio: 5 / 6;
+            background: #2A1530;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 24px;
+            border: 1px solid #3D1F42;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .style-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .style-card-text {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .style-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .style-card p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* --- Bottom CTA --- */
+        .bottom-cta {
+            text-align: center;
+            padding: 120px 48px 160px;
+        }
+
+        .bottom-cta h2 {
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .bottom-cta p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .bottom-cta a {
+            display: inline-block;
+            padding: 14px 36px;
+            background: #E85B6F;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .bottom-cta a:hover {
+            opacity: 0.85;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            nav {
+                padding: 16px 24px;
+            }
+
+            .hero {
+                padding: 100px 24px 60px;
+            }
+
+            section {
+                padding: 80px 24px;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .styles-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .style-card {
+                aspect-ratio: auto;
+                padding: 24px;
+                min-height: 120px;
+            }
+
+            .bottom-cta {
+                padding: 80px 24px 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <span class="nav-wordmark"><svg width="22" height="22" viewBox="0 0 48 48" fill="none" style="vertical-align:-3px;margin-right:6px;"><polyline points="7,12 12,12 12,7" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="36,7 36,12 41,12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="7,36 12,36 12,41" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="36,41 36,36 41,36" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Patch</span>
+        <a href="editor.html" class="nav-cta">Try Patch</a>
+    </nav>
+
+    <div class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-content">
+            <h1>Patch</h1>
+            <p>Turn your audio into generative visuals. Upload a clip, pick a style, export a video.</p>
+            <a href="editor.html" class="hero-cta">Try it free</a>
+        </div>
+    </div>
+
+    <section>
+        <div class="section-label">How it works</div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">01</div>
+                <h3>Upload audio</h3>
+                <p>Drop in a podcast clip, a voice memo, a track — anything with sound.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">02</div>
+                <h3>Choose a style</h3>
+                <p>Each visual style is a creative instrument. Tweak it until it feels right.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">03</div>
+                <h3>Export video</h3>
+                <p>Pick your aspect ratio, hit export, and share it anywhere.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-label">Styles</div>
+        <div class="styles-grid">
+            <div class="style-card">
+                <canvas class="style-preview" id="preview-polygons"></canvas>
+                <div class="style-card-text">
+                    <h3>Polygons</h3>
+                    <p>Nested shapes that pulse with your audio</p>
+                </div>
+            </div>
+            <div class="style-card">
+                <canvas class="style-preview" id="preview-lines"></canvas>
+                <div class="style-card-text">
+                    <h3>Lines</h3>
+                    <p>Waveforms drawn in real time</p>
+                </div>
+            </div>
+            <div class="style-card">
+                <canvas class="style-preview" id="preview-blob"></canvas>
+                <div class="style-card-text">
+                    <h3>Blob</h3>
+                    <p>Organic forms that breathe and shift</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="bottom-cta">
+        <h2>Don't have video?<br>Just use a Patch.</h2>
+        <p>Free to use. No account required.</p>
+        <a href="editor.html">Get started</a>
+    </div>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('hero-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Config ---
+        const NUM_LAYERS = 5;
+        const NODES_PER_LAYER = 5;
+        const MAX_POINTS = 80;
+        const LAYER_GAP = 18;
+        const COLORS = ['#F5C34B', '#F5C34B', '#F5C34B', '#F5C34B'];
+        const RESHUFFLE_DECAY = 800;
+        const RESHUFFLE_DURATION = 500;
+
+        function resize() {
+            const size = Math.max(window.innerHeight, 800);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // --- Simulated audio ---
+        const SIM_BINS = 512;
+        const simFreqData = new Uint8Array(SIM_BINS);
+        let simAmplitude = 0;
+        let simBass = 0;
+        let simAmplitudeHistory = [];
+        let lastStrongInputTime = performance.now();
+        let reshuffleInProgress = false;
+        let reshuffleStartTime = 0;
+
+        function updateSimAudio(t) {
+            // Generate fake frequency data — gentle, slow movement
+            for (let i = 0; i < SIM_BINS; i++) {
+                const freqT = i / SIM_BINS;
+                const v1 = Math.sin(t * (0.3 + freqT * 0.8) + freqT * 12) * 0.5 + 0.5;
+                const v2 = Math.sin(t * (0.12 + freqT * 0.3) + freqT * 5 + 1.5) * 0.2;
+                const v3 = Math.sin(t * 0.6 + freqT * 3.3) * 0.1;
+                const bass = freqT < 0.15 ? Math.pow(Math.max(0, Math.sin(t * 0.4 + 0.3)), 6) * 0.2 : 0;
+                simFreqData[i] = Math.max(0, Math.min(255, (v1 + v2 + v3 + bass) * 100));
+            }
+
+            // Smoothed amplitude
+            let sum = 0;
+            for (let i = 0; i < SIM_BINS; i++) sum += simFreqData[i] / 255;
+            const rms = sum / SIM_BINS;
+            simAmplitude += (rms - simAmplitude) * 0.15;
+
+            // Smoothed bass
+            let bassSum = 0;
+            const bassEnd = Math.floor(SIM_BINS * 0.1);
+            for (let i = 0; i < bassEnd; i++) bassSum += simFreqData[i];
+            simBass += (bassSum / (bassEnd * 255) - simBass) * 0.2;
+
+            // History for reshuffling
+            simAmplitudeHistory.push(simAmplitude);
+            if (simAmplitudeHistory.length > 30) simAmplitudeHistory.shift();
+        }
+
+        // --- Layer state ---
+        function createLayerNodes() {
+            const nodes = [];
+            for (let i = 0; i < NODES_PER_LAYER; i++) {
+                const node = {
+                    angle: Math.random() * Math.PI * 2,
+                    freqStart: Math.random() * 0.5,
+                    freqWidth: 0.03 + Math.random() * 0.1,
+                    spread: 0.08 + Math.random() * 0.14,
+                    strength: 1.5 + Math.random() * 1.0,
+                    driftSpeed: (0.02 + Math.random() * 0.06) * (Math.random() < 0.5 ? 1 : -1),
+                    freqCenter: 0,
+                    freqJitterRange: 0.03 + Math.random() * 0.05,
+                    freqJitterPeriod: 5 + Math.random() * 5,
+                    freqJitterPhase: Math.random() * Math.PI * 2,
+                };
+                node.freqCenter = node.freqStart;
+                nodes.push(node);
+            }
+            return nodes;
+        }
+
+        const layers = [];
+        for (let l = 0; l < NUM_LAYERS; l++) {
+            const t = l / (NUM_LAYERS - 1);
+            layers.push({
+                nodes: createLayerNodes(),
+                displacements: new Float32Array(MAX_POINTS),
+                targets: new Float32Array(MAX_POINTS),
+                reshuffleTargets: [],
+                displacementScale: 1.2 - t * 0.8,
+                opacity: 0.15 + t * 0.85,
+                colorIndex: l % COLORS.length,
+            });
+        }
+
+        // --- Update blob ---
+        function updateBlob(t) {
+            const now = performance.now();
+            const dt = 1 / 60;
+
+            // Decay-based reshuffling
+            const avgHist = simAmplitudeHistory.length > 0
+                ? simAmplitudeHistory.reduce((a, b) => a + b, 0) / simAmplitudeHistory.length : 0;
+            if (simAmplitude > Math.max(avgHist * 0.3, 0.02)) {
+                lastStrongInputTime = now;
+                reshuffleInProgress = false;
+            }
+
+            if (!reshuffleInProgress && (now - lastStrongInputTime > RESHUFFLE_DECAY)) {
+                reshuffleInProgress = true;
+                reshuffleStartTime = now;
+                for (const layer of layers) {
+                    layer.reshuffleTargets = layer.nodes.map(() => ({
+                        angle: Math.random() * Math.PI * 2,
+                        freqCenter: Math.random() * 0.5,
+                    }));
+                }
+            }
+
+            const springSpeed = 0.08 + 0.5 * 0.25;
+
+            for (const layer of layers) {
+                // Node drift
+                for (const node of layer.nodes) {
+                    node.angle += node.driftSpeed * dt;
+                    if (node.angle > Math.PI * 2) node.angle -= Math.PI * 2;
+                    if (node.angle < 0) node.angle += Math.PI * 2;
+                }
+
+                // Frequency jitter
+                for (const node of layer.nodes) {
+                    const wobble = Math.sin(t * (Math.PI * 2 / node.freqJitterPeriod) + node.freqJitterPhase);
+                    node.freqStart = Math.max(0, node.freqCenter + wobble * node.freqJitterRange);
+                }
+
+                // Reshuffle lerp
+                if (reshuffleInProgress && layer.reshuffleTargets.length > 0) {
+                    const elapsed = now - reshuffleStartTime;
+                    const rt = Math.min(1, elapsed / RESHUFFLE_DURATION);
+                    const eased = rt * rt * (3 - 2 * rt);
+                    for (let i = 0; i < layer.nodes.length; i++) {
+                        const node = layer.nodes[i];
+                        const target = layer.reshuffleTargets[i];
+                        let angleDiff = target.angle - node.angle;
+                        if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        node.angle += angleDiff * eased * 0.05;
+                        node.freqCenter += (target.freqCenter - node.freqCenter) * eased * 0.05;
+                    }
+                }
+
+                // Reset targets
+                for (let i = 0; i < MAX_POINTS; i++) layer.targets[i] = 0;
+
+                // Accumulate deformation
+                for (const node of layer.nodes) {
+                    const binStart = Math.floor(node.freqStart * SIM_BINS);
+                    const binEnd = Math.min(SIM_BINS - 1, Math.floor((node.freqStart + node.freqWidth) * SIM_BINS));
+                    let bandSum = 0;
+                    for (let b = binStart; b <= binEnd; b++) bandSum += simFreqData[b];
+                    let energy = bandSum / ((binEnd - binStart + 1) * 255);
+                    energy = Math.max(0, energy - 0.05) / 0.95;
+                    energy = Math.pow(energy, 1.3) * node.strength * 0.35;
+
+                    for (let i = 0; i < MAX_POINTS; i++) {
+                        const pointAngle = (i / MAX_POINTS) * Math.PI * 2;
+                        let diff = Math.abs(pointAngle - node.angle);
+                        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+                        const spreadRadians = node.spread * Math.PI * 2;
+                        if (diff < spreadRadians) {
+                            const falloff = 0.5 + 0.5 * Math.cos(Math.PI * diff / spreadRadians);
+                            layer.targets[i] += energy * falloff;
+                        }
+                    }
+                }
+
+                // Spring physics
+                for (let i = 0; i < MAX_POINTS; i++) {
+                    layer.displacements[i] += (layer.targets[i] - layer.displacements[i]) * springSpeed;
+                }
+            }
+
+            if (reshuffleInProgress) {
+                const rt = Math.min(1, (now - reshuffleStartTime) / RESHUFFLE_DURATION);
+                if (rt >= 1) reshuffleInProgress = false;
+            }
+        }
+
+        // --- Draw blob ---
+        function drawSmoothBlob(points, cx, cy) {
+            const n = points.length;
+            if (n < 3) return;
+            const tension = 0.3;
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 0; i < n; i++) {
+                const p0 = points[(i - 1 + n) % n];
+                const p1 = points[i];
+                const p2 = points[(i + 1) % n];
+                const p3 = points[(i + 2) % n];
+                const cp1x = p1.x + (p2.x - p0.x) * tension;
+                const cp1y = p1.y + (p2.y - p0.y) * tension;
+                const cp2x = p2.x - (p3.x - p1.x) * tension;
+                const cp2y = p2.y - (p3.y - p1.y) * tension;
+                ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+            }
+            ctx.closePath();
+        }
+
+        function drawBlob() {
+            const W = canvas.width;
+            const H = canvas.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            const baseRadius = Math.min(W, H) * 0.28;
+
+            for (let l = 0; l < NUM_LAYERS; l++) {
+                const layer = layers[l];
+                const maxDisplacement = baseRadius * layer.displacementScale;
+
+                const points = [];
+                for (let i = 0; i < MAX_POINTS; i++) {
+                    const angle = (i / MAX_POINTS) * Math.PI * 2 - Math.PI / 2;
+                    const displacement = layer.displacements[i] * maxDisplacement;
+                    const layerRadius = baseRadius - l * LAYER_GAP;
+                    const r = layerRadius + displacement;
+                    points.push({
+                        x: cx + Math.cos(angle) * r,
+                        y: cy + Math.sin(angle) * r,
+                    });
+                }
+
+                const color = COLORS[layer.colorIndex];
+                const cr = parseInt(color.slice(1, 3), 16);
+                const cg = parseInt(color.slice(3, 5), 16);
+                const cb = parseInt(color.slice(5, 7), 16);
+
+                ctx.beginPath();
+                drawSmoothBlob(points, cx, cy);
+                ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${layer.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        // --- Main loop ---
+        function draw() {
+            const t = performance.now() / 1000;
+            updateSimAudio(t);
+            updateBlob(t);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBlob();
+
+            requestAnimationFrame(draw);
+        }
+
+        requestAnimationFrame(draw);
+    })();
+
+    // ============================================================
+    // STYLE CARD PREVIEWS
+    // ============================================================
+    (function() {
+        const previews = [
+            { id: 'preview-polygons', draw: drawPolygonPreview },
+            { id: 'preview-lines', draw: drawLinesPreview },
+            { id: 'preview-blob', draw: drawBlobPreview },
+        ];
+
+        const canvases = previews.map(p => {
+            const el = document.getElementById(p.id);
+            return { el, ctx: el.getContext('2d'), draw: p.draw };
+        });
+
+        function resize() {
+            canvases.forEach(c => {
+                const rect = c.el.parentElement.getBoundingClientRect();
+                c.el.width = rect.width;
+                c.el.height = rect.height;
+            });
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // --- Polygon preview: nested hexagons, gentle rotation ---
+        function drawPolygonPreview(ctx, W, H, t) {
+            const cx = W / 2;
+            const cy = H * 0.45;
+            const baseRadius = Math.min(W, H) * 0.3;
+            const layers = 6;
+            const sides = 6;
+
+            for (let i = 0; i < layers; i++) {
+                const layerT = i / layers;
+                const r = baseRadius * (0.15 + layerT * 0.85);
+                const pulse = 1 + Math.sin(t * 1.2 + i * 0.5) * 0.03;
+                const radius = r * pulse;
+                const rotation = t * 0.3 + i * 0.15;
+                const alpha = i === 0 ? 0.7 : 0.15 + layerT * 0.5;
+                const weight = i === 0 ? 2 : 1.2 - layerT * 0.6;
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+                ctx.lineWidth = weight;
+
+                // Rounded corners via quadratic bezier
+                const edgeLen = 2 * radius * Math.sin(Math.PI / sides);
+                const cornerR = 0.25 * (edgeLen / 2);
+
+                for (let v = 0; v < sides; v++) {
+                    const angle = (Math.PI * 2 / sides) * v + rotation;
+                    const vx = cx + Math.cos(angle) * radius;
+                    const vy = cy + Math.sin(angle) * radius;
+
+                    const prevAngle = (Math.PI * 2 / sides) * ((v - 1 + sides) % sides) + rotation;
+                    const nextAngle = (Math.PI * 2 / sides) * ((v + 1) % sides) + rotation;
+                    const prevX = cx + Math.cos(prevAngle) * radius;
+                    const prevY = cy + Math.sin(prevAngle) * radius;
+                    const nextX = cx + Math.cos(nextAngle) * radius;
+                    const nextY = cy + Math.sin(nextAngle) * radius;
+
+                    const dxP = (prevX - vx) / edgeLen;
+                    const dyP = (prevY - vy) / edgeLen;
+                    const dxN = (nextX - vx) / edgeLen;
+                    const dyN = (nextY - vy) / edgeLen;
+
+                    const sx = vx + dxP * cornerR;
+                    const sy = vy + dyP * cornerR;
+                    const ex = vx + dxN * cornerR;
+                    const ey = vy + dyN * cornerR;
+
+                    if (v === 0) ctx.moveTo(sx, sy);
+                    else ctx.lineTo(sx, sy);
+                    ctx.quadraticCurveTo(vx, vy, ex, ey);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+        }
+
+        // --- Lines preview: center line + secondary lines pulsing ---
+        function drawLinesPreview(ctx, W, H, t) {
+            const cx = W / 2;
+            const cy = H * 0.45;
+            const lineLen = W * 0.6;
+            const x1 = cx - lineLen / 2;
+            const x2 = cx + lineLen / 2;
+            ctx.lineCap = 'round';
+
+            // Main center line
+            const mainThick = 4 + Math.sin(t * 0.8) * 1.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = mainThick;
+            ctx.beginPath();
+            ctx.moveTo(x1, cy);
+            ctx.lineTo(x2, cy);
+            ctx.stroke();
+
+            // Secondary lines
+            const count = 4;
+            const maxSpread = H * 0.28;
+            for (let i = 0; i < count; i++) {
+                const offset = ((i + 1) / (count + 1)) * maxSpread;
+                const energy = Math.max(0, Math.sin(t * 1.5 + i * 1.2) * 0.5 + 0.3);
+                const alpha = energy * 0.5;
+                const thick = 1 + energy * 2.5;
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+                ctx.lineWidth = thick;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, cy - offset);
+                ctx.lineTo(x2, cy - offset);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x1, cy + offset);
+                ctx.lineTo(x2, cy + offset);
+                ctx.stroke();
+            }
+        }
+
+        // --- Blob preview: layered deforming circles ---
+        function drawBlobPreview(ctx, W, H, t) {
+            const cx = W / 2;
+            const cy = H * 0.45;
+            const baseRadius = Math.min(W, H) * 0.22;
+            const numLayers = 4;
+            const numPoints = 48;
+            const gap = 8;
+
+            for (let l = 0; l < numLayers; l++) {
+                const layerT = l / (numLayers - 1);
+                const r = baseRadius - l * gap;
+                const alpha = 0.12 + layerT * 0.65;
+
+                const points = [];
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    const noise = Math.sin(angle * 3 + t * 0.8 + l * 1.5) * 0.08
+                                + Math.sin(angle * 5 + t * 0.5 + l * 2.3) * 0.05
+                                + Math.sin(angle * 2 + t * 0.3 + l * 0.7) * 0.04;
+                    const pr = r * (1 + noise);
+                    points.push({
+                        x: cx + Math.cos(angle) * pr,
+                        y: cy + Math.sin(angle) * pr,
+                    });
+                }
+
+                // Catmull-Rom bezier
+                ctx.beginPath();
+                const tension = 0.3;
+                const n = points.length;
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 0; i < n; i++) {
+                    const p0 = points[(i - 1 + n) % n];
+                    const p1 = points[i];
+                    const p2 = points[(i + 1) % n];
+                    const p3 = points[(i + 2) % n];
+                    ctx.bezierCurveTo(
+                        p1.x + (p2.x - p0.x) * tension,
+                        p1.y + (p2.y - p0.y) * tension,
+                        p2.x - (p3.x - p1.x) * tension,
+                        p2.y - (p3.y - p1.y) * tension,
+                        p2.x, p2.y
+                    );
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+                ctx.fill();
+            }
+        }
+
+        // --- Shared animation loop ---
+        function animate() {
+            const t = performance.now() / 1000;
+            canvases.forEach(c => {
+                c.ctx.clearRect(0, 0, c.el.width, c.el.height);
+                c.draw(c.ctx, c.el.width, c.el.height, t);
+            });
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    })();
+    </script>
+
+</body>
+</html>
