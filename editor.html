@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Patch</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@200,300,400,500,600,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 <style>
@@ -812,7 +811,12 @@
       <div class="viz-tile" id="viz-tile-blob" data-viz="blob">
         <canvas id="viz-preview-blob"></canvas>
       </div>
-      <div class="viz-tile-placeholder">Coming<br>soon</div>
+      <div class="viz-tile" id="viz-tile-harmonic" data-viz="harmonic">
+        <canvas id="viz-preview-harmonic"></canvas>
+      </div>
+      <div class="viz-tile" id="viz-tile-ridgeline" data-viz="ridgeline">
+        <canvas id="viz-preview-ridgeline"></canvas>
+      </div>
     </div>
     <button id="back-btn">← Back</button>
   </div>
@@ -888,6 +892,60 @@
       <div class="ctrl-row">
         <label>Spacing <span id="blob-spacing-val">15</span></label>
         <input type="range" id="blob-spacing" min="0" max="40" value="15" step="1">
+      </div>
+    </div>
+
+    <!-- Harmonic-specific controls -->
+    <div class="ctrl-group" id="ctrl-harmonic" style="display: none;">
+      <h3>Harmonic</h3>
+      <div class="ctrl-row">
+        <label>Complexity <span id="harmonic-complexity-val">50</span></label>
+        <input type="range" id="harmonic-complexity" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Trails <span id="harmonic-trails-val">70</span></label>
+        <input type="range" id="harmonic-trails" min="0" max="100" value="70" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Speed <span id="harmonic-speed-val">50</span></label>
+        <input type="range" id="harmonic-speed" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Modulation <span id="harmonic-mod-val">40</span></label>
+        <input type="range" id="harmonic-mod" min="0" max="100" value="40" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Size <span id="harmonic-size-val">50</span></label>
+        <input type="range" id="harmonic-size" min="0" max="100" value="50" step="1">
+      </div>
+    </div>
+
+    <!-- Ridgeline-specific controls -->
+    <div class="ctrl-group" id="ctrl-ridgeline" style="display: none;">
+      <h3>Ridgeline</h3>
+      <div class="ctrl-row">
+        <label>Line Count <span id="ridgeline-linecount-val">50</span></label>
+        <input type="range" id="ridgeline-linecount" min="20" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Peak Height <span id="ridgeline-peakheight-val">60</span></label>
+        <input type="range" id="ridgeline-peakheight" min="10" max="100" value="60" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Smoothing <span id="ridgeline-smoothing-val">50</span></label>
+        <input type="range" id="ridgeline-smoothing" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Width <span id="ridgeline-width-val">100</span></label>
+        <input type="range" id="ridgeline-width" min="10" max="100" value="100" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Scroll Speed <span id="ridgeline-speed-val">50</span></label>
+        <input type="range" id="ridgeline-speed" min="10" max="100" value="50" step="1">
+      </div>
+      <div class="ctrl-row">
+        <label>Stroke Weight <span id="ridgeline-stroke-val">50</span></label>
+        <input type="range" id="ridgeline-stroke" min="10" max="100" value="50" step="1">
       </div>
     </div>
 
@@ -1096,6 +1154,31 @@ let blobReshuffleInProgress = false;
 let blobReshuffleStartTime = 0;
 const BLOB_RESHUFFLE_DECAY = 800;
 const BLOB_RESHUFFLE_DURATION = 500;
+
+// Harmonic state
+let harmonicComplexity = 0.5;
+let harmonicTrails = 0.7;
+let harmonicSpeed = 0.5;
+let harmonicMod = 0.4;
+let harmonicSize = 0.5;
+let harmonicPhase = 0;
+
+// Per-layer frequency bands for Harmonic
+const HARMONIC_NUM_LAYERS = 3;
+let harmonicLayerBands = new Float32Array(HARMONIC_NUM_LAYERS);
+let smoothHarmonicBands = new Float32Array(HARMONIC_NUM_LAYERS);
+
+// Ridgeline state
+let ridgelineCount = 50;
+let ridgelinePeakHeight = 0.6;
+let ridgelineSmoothness = 0.5;
+let ridgelineWidth = 1.0;
+let ridgelineScrollSpeed = 0.5;
+let ridgelineStrokeWeight = 0.5;
+let ridgelineBuffer = [];
+const RIDGELINE_MAX_LINES = 120;
+let ridgelineAccumulator = 0;
+let ridgelineLastFrameTime = 0;
 
 function createBlobLayerNodes() {
   const nodes = [];
@@ -1381,6 +1464,17 @@ function updateAudioAnalysis() {
     smoothLineBands[l] += (lineBands[l] - smoothLineBands[l]) * 0.18;
   }
 
+  // Per-layer frequency slices for Harmonic
+  const binsPerHLayer = Math.floor(binCount / HARMONIC_NUM_LAYERS);
+  for (let l = 0; l < HARMONIC_NUM_LAYERS; l++) {
+    const start = l * binsPerHLayer;
+    const end = (l === HARMONIC_NUM_LAYERS - 1) ? binCount : start + binsPerHLayer;
+    let bandSum = 0;
+    for (let i = start; i < end; i++) bandSum += freqData[i];
+    harmonicLayerBands[l] = bandSum / ((end - start) * 255);
+    smoothHarmonicBands[l] += (harmonicLayerBands[l] - smoothHarmonicBands[l]) * 0.18;
+  }
+
   // Beat detection
   amplitudeHistory.push(smoothAmplitude);
   if (amplitudeHistory.length > 30) amplitudeHistory.shift();
@@ -1518,7 +1612,7 @@ function openPreviewModal() {
   const dur = audioElement ? audioElement.duration : 0;
   document.getElementById('meta-duration').textContent = formatTime(dur);
 
-  const styleNames = { polygons: 'Polygons', lines: 'Lines', blob: 'Blob' };
+  const styleNames = { polygons: 'Polygons', lines: 'Lines', blob: 'Blob', harmonic: 'Harmonic' };
   document.getElementById('meta-style').textContent = styleNames[currentViz] || currentViz;
 
   document.getElementById('meta-aspect').textContent = cropAspect;
@@ -1813,7 +1907,11 @@ const sketch = (p) => {
       beatPulse *= 0.9;
       for (let i = 0; i < smoothLayerBands.length; i++) smoothLayerBands[i] *= 0.95;
       for (let i = 0; i < smoothLineBands.length; i++) smoothLineBands[i] *= 0.95;
+      for (let i = 0; i < HARMONIC_NUM_LAYERS; i++) smoothHarmonicBands[i] *= 0.95;
     }
+
+    // Reset color mode every frame so no viz can corrupt state for others
+    p.colorMode(P5_RGB, 255);
 
     // Clear background
     const bgRgb = hexToRgb(bgColor);
@@ -1823,10 +1921,13 @@ const sketch = (p) => {
 
     if (isRecording && exportGfx) {
       // During export: render ONLY to the offscreen export buffer (skip display canvas)
-      exportGfx.push();
-      exportGfx.colorMode(P5_RGB, 255);
-      exportGfx.background(bgRgb.r, bgRgb.g, bgRgb.b);
-      exportGfx.pop();
+      // Harmonic/Ridgeline handle their own background, so skip full clear
+      if (currentViz !== 'harmonic' && currentViz !== 'ridgeline') {
+        exportGfx.push();
+        exportGfx.colorMode(P5_RGB, 255);
+        exportGfx.background(bgRgb.r, bgRgb.g, bgRgb.b);
+        exportGfx.pop();
+      }
 
       // Transform so the crop region maps to the full export canvas
       exportGfx.push();
@@ -1838,14 +1939,19 @@ const sketch = (p) => {
       if (currentViz === 'polygons') drawPolygons(exportGfx, canvasW, canvasH);
       else if (currentViz === 'lines') drawLines(exportGfx, canvasW, canvasH);
       else if (currentViz === 'blob') drawBlobViz(exportGfx, canvasW, canvasH);
+      else if (currentViz === 'harmonic') drawHarmonic(exportGfx, canvasW, canvasH);
+      else if (currentViz === 'ridgeline') drawRidgeline(exportGfx, canvasW, canvasH);
 
       exportGfx.pop();
     } else {
       // Normal mode: render to display canvas
-      p.push();
-      p.colorMode(P5_RGB, 255);
-      p.background(bgRgb.r, bgRgb.g, bgRgb.b);
-      p.pop();
+      // Harmonic/Ridgeline handle their own background, so skip full clear
+      if (currentViz !== 'harmonic' && currentViz !== 'ridgeline') {
+        p.push();
+        p.colorMode(P5_RGB, 255);
+        p.background(bgRgb.r, bgRgb.g, bgRgb.b);
+        p.pop();
+      }
 
       if (currentViz === 'polygons') {
         drawPolygons(p, canvasW, canvasH);
@@ -1853,6 +1959,10 @@ const sketch = (p) => {
         drawLines(p, canvasW, canvasH);
       } else if (currentViz === 'blob') {
         drawBlobViz(p, canvasW, canvasH);
+      } else if (currentViz === 'harmonic') {
+        drawHarmonic(p, canvasW, canvasH);
+      } else if (currentViz === 'ridgeline') {
+        drawRidgeline(p, canvasW, canvasH);
       }
     }
 
@@ -1972,6 +2082,7 @@ function drawPolygons(p, W, H) {
   const t = performance.now() / 1000;
 
   p.push();
+  p.colorMode(p.HSB, 360, 100, 100, 100);
   p.translate(W / 2, H / 2);
 
   const baseRadius = Math.min(W, H) * 0.3;
@@ -2350,6 +2461,121 @@ function drawBlobViz(p, W, H) {
 }
 
 // ============================================================
+// HARMONIC (LISSAJOUS) VISUALIZATION
+// ============================================================
+function drawHarmonic(p, W, H) {
+  const palette = PALETTES[currentPalette];
+  const react = reactivityIntensity;
+  const t = performance.now() / 1000;
+
+  // --- Trail persistence via fade overlay ---
+  const trailAlpha = mapVal(harmonicTrails, 0, 1, 60, 3);
+  const bgRgb = hexToRgb(bgColor);
+
+  p.push();
+  p.colorMode(P5_RGB, 255);
+  p.noStroke();
+  p.fill(bgRgb.r, bgRgb.g, bgRgb.b, trailAlpha);
+  p.rect(0, 0, W, H);
+  p.pop();
+
+  p.push();
+  p.translate(W / 2, H / 2);
+  p.colorMode(P5_RGB, 255);
+
+  const baseSize = Math.min(W, H) * (0.15 + harmonicSize * 0.65);
+
+  // --- Audio is the engine ---
+  const ampInfluence = smoothAmplitude * react;
+  const pulse = beatPulse * react;
+
+  // Phase driven by audio — amplitude is the pen
+  // Tiny idle drift so it's not completely dead without audio
+  const idleDrift = 0.002;
+  const audioSpeed = ampInfluence * (0.5 + harmonicSpeed * 2.5);
+  harmonicPhase += (idleDrift + audioSpeed) * 0.5;
+
+  // Frequency ratios — complexity slider sets base, bass energy shifts up
+  const ratioTable = [
+    [1, 1], [1, 2], [2, 3], [3, 4], [3, 5], [4, 5], [5, 6], [5, 7], [7, 8]
+  ];
+  const ratioIdx = Math.floor((harmonicComplexity * 0.5) * (ratioTable.length - 1));
+  const bassShift = Math.floor(smoothBass * react * 3);
+  const activeIdx = Math.min(ratioIdx + bassShift, ratioTable.length - 1);
+  const [freqA, freqB] = ratioTable[activeIdx];
+
+  // --- Per-layer drawing, each driven by its own frequency band ---
+  const numLayers = HARMONIC_NUM_LAYERS;
+  const pointsPerCurve = 600;
+
+  for (let layer = 0; layer < numLayers; layer++) {
+    // This layer's frequency band energy (0-1)
+    const bandEnergy = smoothHarmonicBands[layer] * react;
+
+    // Layer is quiet when its band is quiet
+    // Size directly driven by band energy
+    const minSize = baseSize * 0.08;
+    const layerSize = minSize + (baseSize - minSize) * bandEnergy + pulse * baseSize * 0.1;
+
+    // Modulation depth driven by band energy — quiet = clean form, loud = complex
+    const modStrength = harmonicMod * bandEnergy * 4;
+
+    // Stroke weight and opacity driven by band energy
+    const baseAlpha = 15;
+    const maxAlpha = 220;
+    const alpha = baseAlpha + (maxAlpha - baseAlpha) * bandEnergy + pulse * 30;
+    const sw = 0.3 + bandEnergy * 2.5 + pulse * 1.0;
+
+    const colorIdx = layer % palette.colors.length;
+    const hexColor = palette.colors[colorIdx];
+    const rgb = hexToRgb(hexColor);
+
+    p.stroke(rgb.r, rgb.g, rgb.b, Math.min(alpha, 255));
+    p.strokeWeight(sw);
+    p.noFill();
+
+    // Each layer has its own phase offset so they don't stack identically
+    const layerPhaseOffset = layer * 0.9;
+    const layerModOffset = layer * 0.4;
+
+    p.beginShape();
+    for (let i = 0; i < pointsPerCurve; i++) {
+      const angle = (i / pointsPerCurve) * TWO_PI * Math.max(freqA, freqB);
+
+      // Frequency modulation — scales with this layer's audio energy
+      const modX = Math.sin(angle * 0.5 + harmonicPhase + layerModOffset) * modStrength;
+      const modY = Math.cos(angle * 0.3 + harmonicPhase * 0.7 + layerModOffset) * modStrength;
+
+      const px = 1 + modX * 0.3;
+      const py = 1 + modY * 0.3;
+
+      // Core Lissajous
+      const phase = harmonicPhase + layerPhaseOffset;
+      const x = Math.sin(angle * freqA * px + phase) * layerSize;
+      const y = Math.sin(angle * freqB * py + phase * 0.6) * layerSize * 0.85;
+
+      // High-frequency jitter — only when highs are actually present
+      const highJitter = smoothHigh * react * 4;
+      const jx = x + Math.sin(angle * 13 + t) * highJitter;
+      const jy = y + Math.cos(angle * 17 + t) * highJitter;
+
+      p.curveVertex(jx, jy);
+    }
+    p.endShape();
+  }
+
+  // Beat flash
+  if (pulse > 0.15) {
+    const flashAlpha = pulse * 35;
+    p.noStroke();
+    p.fill(255, 255, 255, flashAlpha);
+    p.circle(0, 0, baseSize * 0.2 * pulse);
+  }
+
+  p.pop();
+}
+
+// ============================================================
 // COLOR UTILS
 // ============================================================
 function hexToRgb(hex) {
@@ -2382,6 +2608,165 @@ function rgbToBri(r, g, b) {
 }
 
 // ============================================================
+// RIDGELINE VISUALIZATION
+// ============================================================
+
+function captureRidgelineLine() {
+  const numPoints = 120; // fixed detail for platform version
+
+  if (!analyser || !audioLoaded || !isPlaying) {
+    const line = new Float32Array(numPoints);
+    for (let i = 0; i < numPoints; i++) line[i] = Math.random() * 0.005;
+    return line;
+  }
+
+  const binCount = analyser.frequencyBinCount;
+  const line = new Float32Array(numPoints);
+  const react = reactivityIntensity;
+
+  for (let i = 0; i < numPoints; i++) {
+    const t = i / (numPoints - 1);
+    const logT = Math.pow(t, 0.7);
+    const binIdx = Math.floor(logT * (binCount - 1));
+
+    let val = 0, count = 0;
+    const spread = Math.max(1, Math.floor(binCount / numPoints));
+    for (let j = Math.max(0, binIdx - spread); j <= Math.min(binCount - 1, binIdx + spread); j++) {
+      val += freqData[j] / 255;
+      count++;
+    }
+    val /= count;
+
+    // Power curve compression
+    val = Math.pow(val, 0.55);
+    val *= react * 2; // amplify with shared reactivity
+    line[i] = Math.min(val, 1.0);
+  }
+
+  // Smooth
+  const passes = Math.floor(ridgelineSmoothness * 6);
+  for (let p = 0; p < passes; p++) {
+    for (let i = 1; i < numPoints - 1; i++) {
+      line[i] = line[i] * 0.5 + (line[i-1] + line[i+1]) * 0.25;
+    }
+  }
+
+  // Taper edges
+  const taperLen = Math.floor(numPoints * 0.12);
+  for (let i = 0; i < taperLen; i++) {
+    const fade = i / taperLen;
+    const smooth = fade * fade * (3 - 2 * fade);
+    line[i] *= smooth;
+    line[numPoints - 1 - i] *= smooth;
+  }
+
+  return line;
+}
+
+function drawRidgeline(p, W, H) {
+  p.push();
+  p.colorMode(P5_RGB, 255);
+
+  const pal = PALETTES[currentPalette];
+  const bgRgb = hexToRgb(bgColor);
+
+  p.background(bgRgb.r, bgRgb.g, bgRgb.b);
+
+  // Advance ridgeline buffer
+  const now = performance.now();
+  const dt = ridgelineLastFrameTime ? (now - ridgelineLastFrameTime) / 1000 : 1/60;
+  ridgelineLastFrameTime = now;
+
+  const linesPerSecond = 5 + ridgelineScrollSpeed * 25;
+  ridgelineAccumulator += dt * linesPerSecond;
+
+  while (ridgelineAccumulator >= 1) {
+    ridgelineBuffer.push(captureRidgelineLine());
+    ridgelineAccumulator -= 1;
+    while (ridgelineBuffer.length > RIDGELINE_MAX_LINES) ridgelineBuffer.shift();
+  }
+
+  if (ridgelineBuffer.length === 0) return;
+
+  const visibleLines = Math.min(ridgelineBuffer.length, ridgelineCount);
+  const startIdx = ridgelineBuffer.length - visibleLines;
+
+  const totalHeight = H * 0.8;
+  const topMargin = H * 0.1;
+  const lineSpacing = totalHeight / Math.max(visibleLines - 1, 1);
+
+  // Width control — crops from both sides
+  const sideMargin = W * (1 - ridgelineWidth) / 2;
+  const leftMargin = Math.max(sideMargin, W * 0.02);
+  const drawWidth = W - leftMargin * 2;
+
+  const maxPeak = ridgelinePeakHeight * H * 0.25;
+  const sw = 0.5 + ridgelineStrokeWeight * 2.5;
+
+  for (let i = 0; i < visibleLines; i++) {
+    const lineData = ridgelineBuffer[startIdx + i];
+    const numPoints = lineData.length;
+    const baseY = topMargin + i * lineSpacing;
+
+    // Color gradient from back to front
+    const colorProgress = i / Math.max(visibleLines - 1, 1);
+    const colorIdx = Math.floor(colorProgress * (pal.colors.length - 1));
+    const colorNext = Math.min(colorIdx + 1, pal.colors.length - 1);
+    const colorT = (colorProgress * (pal.colors.length - 1)) - colorIdx;
+
+    const c1 = hexToRgb(pal.colors[colorIdx]);
+    const c2 = hexToRgb(pal.colors[colorNext]);
+    const r = c1.r + (c2.r - c1.r) * colorT;
+    const g = c1.g + (c2.g - c1.g) * colorT;
+    const b = c1.b + (c2.b - c1.b) * colorT;
+
+    const ageFade = 0.3 + 0.7 * colorProgress;
+    const strokeAlpha = ageFade * 255;
+
+    // Build points
+    const points = [];
+    for (let j = 0; j < numPoints; j++) {
+      const t = j / (numPoints - 1);
+      const x = leftMargin + t * drawWidth;
+      const displacement = lineData[j] * maxPeak;
+      points.push({ x, y: baseY - displacement });
+    }
+
+    // Filled shape for occlusion
+    p.noStroke();
+    p.fill(bgRgb.r, bgRgb.g, bgRgb.b);
+    p.beginShape();
+    for (let j = 0; j < points.length; j++) p.vertex(points[j].x, points[j].y);
+    p.vertex(points[points.length - 1].x, baseY + lineSpacing * 0.5);
+    p.vertex(points[0].x, baseY + lineSpacing * 0.5);
+    p.endShape(P5_CLOSE);
+
+    // Stroke
+    p.noFill();
+    p.stroke(r, g, b, strokeAlpha);
+    p.strokeWeight(sw);
+    p.beginShape();
+    for (let j = 0; j < points.length; j++) p.curveVertex(points[j].x, points[j].y);
+    if (points.length > 0) p.curveVertex(points[points.length - 1].x, points[points.length - 1].y);
+    p.endShape();
+
+    // Beat flash on newest lines
+    if (beatPulse > 0.15 && i >= visibleLines - 3) {
+      const flashAlpha = beatPulse * 60 * (1 - (visibleLines - 1 - i) / 3);
+      p.stroke(255, 255, 255, flashAlpha);
+      p.strokeWeight(sw + beatPulse * 1.5);
+      p.noFill();
+      p.beginShape();
+      for (let j = 0; j < points.length; j++) p.curveVertex(points[j].x, points[j].y);
+      if (points.length > 0) p.curveVertex(points[points.length - 1].x, points[points.length - 1].y);
+      p.endShape();
+    }
+  }
+
+  p.pop();
+}
+
+// ============================================================
 // VIZ SWITCHING
 // ============================================================
 function switchViz(vizName) {
@@ -2396,6 +2781,8 @@ function switchViz(vizName) {
   document.getElementById('ctrl-shape').style.display = (vizName === 'polygons') ? '' : 'none';
   document.getElementById('ctrl-lines').style.display = (vizName === 'lines') ? '' : 'none';
   document.getElementById('ctrl-blob').style.display = (vizName === 'blob') ? '' : 'none';
+  document.getElementById('ctrl-harmonic').style.display = (vizName === 'harmonic') ? '' : 'none';
+  document.getElementById('ctrl-ridgeline').style.display = (vizName === 'ridgeline') ? '' : 'none';
 }
 
 // ============================================================
@@ -2564,10 +2951,114 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.globalAlpha = 1;
   }
 
+  function drawHarmonicPreview() {
+    const canvas = document.getElementById('viz-preview-harmonic');
+    const tile = canvas.parentElement;
+    const size = tile.clientWidth - 4;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const palette = PALETTES[currentPalette];
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, size, size);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size * 0.32;
+    const freqA = 3;
+    const freqB = 2;
+    const points = 300;
+
+    for (let layer = 0; layer < 3; layer++) {
+      const colorIdx = layer % palette.colors.length;
+      const alpha = 0.8 - layer * 0.2;
+      ctx.strokeStyle = palette.colors[colorIdx];
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1.4 - layer * 0.3;
+
+      const phaseOff = layer * 0.5;
+      ctx.beginPath();
+      for (let i = 0; i <= points; i++) {
+        const t = (i / points) * Math.PI * 2 * freqB;
+        const x = cx + Math.sin(t * freqA / freqB + phaseOff) * r * 0.9;
+        const y = cy + Math.sin(t + phaseOff * 0.6) * r * 0.75;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawRidgelinePreview() {
+    const canvas = document.getElementById('viz-preview-ridgeline');
+    const tile = canvas.parentElement;
+    const size = tile.clientWidth - 4;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const palette = PALETTES[currentPalette];
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, size, size);
+
+    // Draw stacked ridgelines
+    const numLines = 6;
+    const spacing = size / (numLines + 2);
+    const margin = size * 0.15;
+    const w = size - margin * 2;
+
+    for (let i = 0; i < numLines; i++) {
+      const baseY = spacing * (i + 1.5);
+      const colorIdx = Math.floor((i / (numLines - 1)) * (palette.colors.length - 1));
+      ctx.strokeStyle = palette.colors[colorIdx];
+      ctx.globalAlpha = 0.4 + 0.6 * (i / (numLines - 1));
+      ctx.lineWidth = 1.2;
+
+      // Fill below for occlusion
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.moveTo(margin, baseY);
+      const pts = 30;
+      for (let j = 0; j <= pts; j++) {
+        const t = j / pts;
+        const x = margin + t * w;
+        // Pseudo-random peaks using sin
+        const peak = Math.sin(t * Math.PI * (2 + i * 0.7) + i * 1.3) * 0.5 + 0.5;
+        const envelope = Math.sin(t * Math.PI); // taper at edges
+        const y = baseY - peak * envelope * spacing * 0.8;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(margin + w, baseY + spacing * 0.4);
+      ctx.lineTo(margin, baseY + spacing * 0.4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Stroke the line
+      ctx.beginPath();
+      ctx.moveTo(margin, baseY);
+      for (let j = 0; j <= pts; j++) {
+        const t = j / pts;
+        const x = margin + t * w;
+        const peak = Math.sin(t * Math.PI * (2 + i * 0.7) + i * 1.3) * 0.5 + 0.5;
+        const envelope = Math.sin(t * Math.PI);
+        const y = baseY - peak * envelope * spacing * 0.8;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawVizPreviews() {
     drawPolygonPreview();
     drawLinesPreview();
     drawBlobPreview();
+    drawHarmonicPreview();
+    drawRidgelinePreview();
   }
 
   // Initial preview draw
@@ -2639,6 +3130,74 @@ document.addEventListener('DOMContentLoaded', () => {
   blobSpacingSlider.addEventListener('input', () => {
     blobLayerGap = parseInt(blobSpacingSlider.value);
     document.getElementById('blob-spacing-val').textContent = blobSpacingSlider.value;
+  });
+
+  // Harmonic sliders
+  const harmonicComplexitySlider = document.getElementById('harmonic-complexity');
+  harmonicComplexitySlider.addEventListener('input', () => {
+    harmonicComplexity = parseInt(harmonicComplexitySlider.value) / 100;
+    document.getElementById('harmonic-complexity-val').textContent = harmonicComplexitySlider.value;
+  });
+
+  const harmonicTrailsSlider = document.getElementById('harmonic-trails');
+  harmonicTrailsSlider.addEventListener('input', () => {
+    harmonicTrails = parseInt(harmonicTrailsSlider.value) / 100;
+    document.getElementById('harmonic-trails-val').textContent = harmonicTrailsSlider.value;
+  });
+
+  const harmonicSpeedSlider = document.getElementById('harmonic-speed');
+  harmonicSpeedSlider.addEventListener('input', () => {
+    harmonicSpeed = parseInt(harmonicSpeedSlider.value) / 100;
+    document.getElementById('harmonic-speed-val').textContent = harmonicSpeedSlider.value;
+  });
+
+  const harmonicModSlider = document.getElementById('harmonic-mod');
+  harmonicModSlider.addEventListener('input', () => {
+    harmonicMod = parseInt(harmonicModSlider.value) / 100;
+    document.getElementById('harmonic-mod-val').textContent = harmonicModSlider.value;
+  });
+
+  const harmonicSizeSlider = document.getElementById('harmonic-size');
+  harmonicSizeSlider.addEventListener('input', () => {
+    harmonicSize = parseInt(harmonicSizeSlider.value) / 100;
+    document.getElementById('harmonic-size-val').textContent = harmonicSizeSlider.value;
+  });
+
+  // Ridgeline sliders
+  const ridgelineLinecountSlider = document.getElementById('ridgeline-linecount');
+  ridgelineLinecountSlider.addEventListener('input', () => {
+    ridgelineCount = parseInt(ridgelineLinecountSlider.value);
+    document.getElementById('ridgeline-linecount-val').textContent = ridgelineLinecountSlider.value;
+  });
+
+  const ridgelinePeakheightSlider = document.getElementById('ridgeline-peakheight');
+  ridgelinePeakheightSlider.addEventListener('input', () => {
+    ridgelinePeakHeight = parseInt(ridgelinePeakheightSlider.value) / 100;
+    document.getElementById('ridgeline-peakheight-val').textContent = ridgelinePeakheightSlider.value;
+  });
+
+  const ridgelineSmoothingSlider = document.getElementById('ridgeline-smoothing');
+  ridgelineSmoothingSlider.addEventListener('input', () => {
+    ridgelineSmoothness = parseInt(ridgelineSmoothingSlider.value) / 100;
+    document.getElementById('ridgeline-smoothing-val').textContent = ridgelineSmoothingSlider.value;
+  });
+
+  const ridgelineWidthSlider = document.getElementById('ridgeline-width');
+  ridgelineWidthSlider.addEventListener('input', () => {
+    ridgelineWidth = parseInt(ridgelineWidthSlider.value) / 100;
+    document.getElementById('ridgeline-width-val').textContent = ridgelineWidthSlider.value;
+  });
+
+  const ridgelineSpeedSlider = document.getElementById('ridgeline-speed');
+  ridgelineSpeedSlider.addEventListener('input', () => {
+    ridgelineScrollSpeed = parseInt(ridgelineSpeedSlider.value) / 100;
+    document.getElementById('ridgeline-speed-val').textContent = ridgelineSpeedSlider.value;
+  });
+
+  const ridgelineStrokeSlider = document.getElementById('ridgeline-stroke');
+  ridgelineStrokeSlider.addEventListener('input', () => {
+    ridgelineStrokeWeight = parseInt(ridgelineStrokeSlider.value) / 100;
+    document.getElementById('ridgeline-stroke-val').textContent = ridgelineStrokeSlider.value;
   });
 
   // Shared sliders

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patch — Audio, visualized</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@200,300,400,500,600,700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -99,7 +98,7 @@
             font-size: clamp(18px, 2.5vw, 24px);
             font-weight: 400;
             color: #888;
-            max-width: 460px;
+            max-width: 720px;
             line-height: 1.5;
             margin-bottom: 48px;
         }
@@ -164,14 +163,34 @@
             line-height: 1.6;
         }
 
-        /* --- Styles preview --- */
-        .styles-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+        /* --- Styles — horizontal scroll --- */
+        .styles-section {
+            padding: 120px 0;
+            max-width: 100%;
+        }
+
+        .styles-section .section-label {
+            max-width: 1080px;
+            margin: 0 auto 48px;
+            padding: 0 48px;
+        }
+
+        .styles-scroll {
+            display: flex;
             gap: 24px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 0 48px 24px;
+        }
+
+        .styles-scroll::-webkit-scrollbar {
+            display: none;
         }
 
         .style-card {
+            flex: 0 0 280px;
             aspect-ratio: 5 / 6;
             background: #2A1530;
             border-radius: 12px;
@@ -182,6 +201,7 @@
             border: 1px solid #3D1F42;
             position: relative;
             overflow: hidden;
+            scroll-snap-align: start;
         }
 
         .style-preview {
@@ -208,6 +228,148 @@
         .style-card p {
             font-size: 14px;
             color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* --- Pricing --- */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .pricing-card {
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 36px 32px;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card.featured {
+            border-color: #2ECBAB;
+            background: #0f1a17;
+        }
+
+        .pricing-tier {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card.featured .pricing-tier {
+            color: #2ECBAB;
+        }
+
+        .pricing-price {
+            font-size: 40px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.03em;
+            margin-bottom: 4px;
+        }
+
+        .pricing-price span {
+            font-size: 16px;
+            font-weight: 400;
+            color: #666;
+        }
+
+        .pricing-note {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 28px;
+        }
+
+        .pricing-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex: 1;
+        }
+
+        .pricing-features li {
+            font-size: 14px;
+            color: #999;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .pricing-features li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+        }
+
+        .pricing-card.featured .pricing-features li::before {
+            background: #2ECBAB;
+        }
+
+        .pricing-cta {
+            display: block;
+            text-align: center;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .pricing-cta.free {
+            background: #222;
+            color: #ccc;
+        }
+
+        .pricing-cta.pro {
+            background: #2ECBAB;
+            color: #fff;
+        }
+
+        .pricing-cta:hover {
+            opacity: 0.85;
+        }
+
+        /* --- FAQ --- */
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .faq-item {
+            border-top: 1px solid #1a1a1a;
+            padding: 24px 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .faq-q {
+            font-size: 16px;
+            font-weight: 500;
+            color: #ddd;
+            margin-bottom: 8px;
+            max-width: 60%;
+        }
+
+        .faq-a {
+            font-size: 14px;
+            color: #777;
+            line-height: 1.6;
+            max-width: 60%;
         }
 
         /* --- Bottom CTA --- */
@@ -266,15 +428,25 @@
                 gap: 40px;
             }
 
-            .styles-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
+            .styles-section {
+                padding: 80px 0;
+            }
+
+            .styles-section .section-label {
+                padding: 0 24px;
+            }
+
+            .styles-scroll {
+                padding: 0 24px 24px;
             }
 
             .style-card {
-                aspect-ratio: auto;
-                padding: 24px;
-                min-height: 120px;
+                flex: 0 0 240px;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
             }
 
             .bottom-cta {
@@ -287,15 +459,15 @@
 
     <nav>
         <span class="nav-wordmark"><svg width="22" height="22" viewBox="0 0 48 48" fill="none" style="vertical-align:-3px;margin-right:6px;"><polyline points="7,12 12,12 12,7" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="36,7 36,12 41,12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="7,36 12,36 12,41" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><polyline points="36,41 36,36 41,36" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Patch</span>
-        <a href="editor.html" class="nav-cta">Try Patch</a>
+        <a href="platform-01.html" class="nav-cta">Try Patch</a>
     </nav>
 
     <div class="hero">
         <canvas id="hero-canvas"></canvas>
         <div class="hero-content">
             <h1>Patch</h1>
-            <p>Turn your audio into generative visuals. Upload a clip, pick a style, export a video.</p>
-            <a href="editor.html" class="hero-cta">Try it free</a>
+            <p>Your podcast deserves better than a static waveform.<br>Drop in your clip, pick a style, export something worth posting.</p>
+            <a href="platform-01.html" class="hero-cta">Try it free</a>
         </div>
     </div>
 
@@ -304,25 +476,25 @@
         <div class="steps">
             <div class="step">
                 <div class="step-number">01</div>
-                <h3>Upload audio</h3>
-                <p>Drop in a podcast clip, a voice memo, a track — anything with sound.</p>
+                <h3>Upload audio clip</h3>
+                <p>Podcast clip, voice memo, full track. If it has sound, it works.</p>
             </div>
             <div class="step">
                 <div class="step-number">02</div>
-                <h3>Choose a style</h3>
-                <p>Each visual style is a creative instrument. Tweak it until it feels right.</p>
+                <h3>Make it yours</h3>
+                <p>Multiple visual styles. All designed to look amazing. That's the point.</p>
             </div>
             <div class="step">
                 <div class="step-number">03</div>
-                <h3>Export video</h3>
-                <p>Pick your aspect ratio, hit export, and share it anywhere.</p>
+                <h3>Export and share</h3>
+                <p>Pick your aspect ratio, hit export, get an MP4. No rendering queue, no waiting.</p>
             </div>
         </div>
     </section>
 
-    <section>
+    <div class="styles-section">
         <div class="section-label">Styles</div>
-        <div class="styles-grid">
+        <div class="styles-scroll">
             <div class="style-card">
                 <canvas class="style-preview" id="preview-polygons"></canvas>
                 <div class="style-card-text">
@@ -344,16 +516,85 @@
                     <p>Organic forms that breathe and shift</p>
                 </div>
             </div>
+            <div class="style-card">
+                <canvas class="style-preview" id="preview-harmonic"></canvas>
+                <div class="style-card-text">
+                    <h3>Harmonic</h3>
+                    <p>Audio-driven curves in orbit</p>
+                </div>
+            </div>
+            <div class="style-card">
+                <canvas class="style-preview" id="preview-ridgeline"></canvas>
+                <div class="style-card-text">
+                    <h3>Ridgeline</h3>
+                    <p>Scrolling frequency landscape</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section>
+        <div class="section-label">Pricing</div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="pricing-tier">Free</div>
+                <div class="pricing-price">$0</div>
+                <div class="pricing-note">No account needed</div>
+                <ul class="pricing-features">
+                    <li>Access to all visualization styles</li>
+                    <li>Full creative controls</li>
+                    <li>Export at 720p</li>
+                    <li>Patch watermark on exports</li>
+                </ul>
+                <a href="platform-01.html" class="pricing-cta free">Start creating</a>
+            </div>
+            <div class="pricing-card featured">
+                <div class="pricing-tier">Pro</div>
+                <div class="pricing-price">$12 <span>/ month</span></div>
+                <div class="pricing-note">or $99 / year</div>
+                <ul class="pricing-features">
+                    <li>Everything in Free</li>
+                    <li>Export up to 4K</li>
+                    <li>No watermark</li>
+                    <li>Priority support</li>
+                </ul>
+                <a href="platform-01.html" class="pricing-cta pro">Go Pro</a>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-label">FAQ</div>
+        <div class="faq-list">
+            <div class="faq-item">
+                <div class="faq-q">Do I need to create an account?</div>
+                <div class="faq-a">Nope. The free tier works instantly in your browser. No signup, no email, no friction.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Is my audio uploaded anywhere?</div>
+                <div class="faq-a">No. Everything runs locally in your browser. Your audio never leaves your machine.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">What audio formats work?</div>
+                <div class="faq-a">MP3, WAV, M4A, and MP4. Basically anything your browser can play.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">Why gate resolution instead of styles?</div>
+                <div class="faq-a">Because we think you should be able to play with everything before you pay for anything. The creative tools are yours. Pro just makes the output bigger and cleaner.</div>
+            </div>
         </div>
     </section>
 
     <div class="bottom-cta">
-        <h2>Don't have video?<br>Just use a Patch.</h2>
-        <p>Free to use. No account required.</p>
-        <a href="editor.html">Get started</a>
+        <h2>Still posting episode links<br>with no visual?</h2>
+        <p>Come on. You're better than that.</p>
+        <a href="platform-01.html">Make something</a>
     </div>
 
     <script>
+    // ============================================================
+    // HERO BLOB ANIMATION
+    // ============================================================
     (function() {
         const canvas = document.getElementById('hero-canvas');
         const ctx = canvas.getContext('2d');
@@ -386,7 +627,6 @@
         let reshuffleStartTime = 0;
 
         function updateSimAudio(t) {
-            // Generate fake frequency data — gentle, slow movement
             for (let i = 0; i < SIM_BINS; i++) {
                 const freqT = i / SIM_BINS;
                 const v1 = Math.sin(t * (0.3 + freqT * 0.8) + freqT * 12) * 0.5 + 0.5;
@@ -396,19 +636,16 @@
                 simFreqData[i] = Math.max(0, Math.min(255, (v1 + v2 + v3 + bass) * 100));
             }
 
-            // Smoothed amplitude
             let sum = 0;
             for (let i = 0; i < SIM_BINS; i++) sum += simFreqData[i] / 255;
             const rms = sum / SIM_BINS;
             simAmplitude += (rms - simAmplitude) * 0.15;
 
-            // Smoothed bass
             let bassSum = 0;
             const bassEnd = Math.floor(SIM_BINS * 0.1);
             for (let i = 0; i < bassEnd; i++) bassSum += simFreqData[i];
             simBass += (bassSum / (bassEnd * 255) - simBass) * 0.2;
 
-            // History for reshuffling
             simAmplitudeHistory.push(simAmplitude);
             if (simAmplitudeHistory.length > 30) simAmplitudeHistory.shift();
         }
@@ -454,7 +691,6 @@
             const now = performance.now();
             const dt = 1 / 60;
 
-            // Decay-based reshuffling
             const avgHist = simAmplitudeHistory.length > 0
                 ? simAmplitudeHistory.reduce((a, b) => a + b, 0) / simAmplitudeHistory.length : 0;
             if (simAmplitude > Math.max(avgHist * 0.3, 0.02)) {
@@ -476,20 +712,17 @@
             const springSpeed = 0.08 + 0.5 * 0.25;
 
             for (const layer of layers) {
-                // Node drift
                 for (const node of layer.nodes) {
                     node.angle += node.driftSpeed * dt;
                     if (node.angle > Math.PI * 2) node.angle -= Math.PI * 2;
                     if (node.angle < 0) node.angle += Math.PI * 2;
                 }
 
-                // Frequency jitter
                 for (const node of layer.nodes) {
                     const wobble = Math.sin(t * (Math.PI * 2 / node.freqJitterPeriod) + node.freqJitterPhase);
                     node.freqStart = Math.max(0, node.freqCenter + wobble * node.freqJitterRange);
                 }
 
-                // Reshuffle lerp
                 if (reshuffleInProgress && layer.reshuffleTargets.length > 0) {
                     const elapsed = now - reshuffleStartTime;
                     const rt = Math.min(1, elapsed / RESHUFFLE_DURATION);
@@ -505,10 +738,8 @@
                     }
                 }
 
-                // Reset targets
                 for (let i = 0; i < MAX_POINTS; i++) layer.targets[i] = 0;
 
-                // Accumulate deformation
                 for (const node of layer.nodes) {
                     const binStart = Math.floor(node.freqStart * SIM_BINS);
                     const binEnd = Math.min(SIM_BINS - 1, Math.floor((node.freqStart + node.freqWidth) * SIM_BINS));
@@ -530,7 +761,6 @@
                     }
                 }
 
-                // Spring physics
                 for (let i = 0; i < MAX_POINTS; i++) {
                     layer.displacements[i] += (layer.targets[i] - layer.displacements[i]) * springSpeed;
                 }
@@ -620,6 +850,8 @@
             { id: 'preview-polygons', draw: drawPolygonPreview },
             { id: 'preview-lines', draw: drawLinesPreview },
             { id: 'preview-blob', draw: drawBlobPreview },
+            { id: 'preview-harmonic', draw: drawHarmonicPreview },
+            { id: 'preview-ridgeline', draw: drawRidgelinePreview },
         ];
 
         const canvases = previews.map(p => {
@@ -658,7 +890,6 @@
                 ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
                 ctx.lineWidth = weight;
 
-                // Rounded corners via quadratic bezier
                 const edgeLen = 2 * radius * Math.sin(Math.PI / sides);
                 const cornerR = 0.25 * (edgeLen / 2);
 
@@ -702,7 +933,6 @@
             const x2 = cx + lineLen / 2;
             ctx.lineCap = 'round';
 
-            // Main center line
             const mainThick = 4 + Math.sin(t * 0.8) * 1.5;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
             ctx.lineWidth = mainThick;
@@ -711,7 +941,6 @@
             ctx.lineTo(x2, cy);
             ctx.stroke();
 
-            // Secondary lines
             const count = 4;
             const maxSpread = H * 0.28;
             for (let i = 0; i < count; i++) {
@@ -762,7 +991,6 @@
                     });
                 }
 
-                // Catmull-Rom bezier
                 ctx.beginPath();
                 const tension = 0.3;
                 const n = points.length;
@@ -783,6 +1011,81 @@
                 ctx.closePath();
                 ctx.fillStyle = 'rgba(255, 255, 255, ' + alpha + ')';
                 ctx.fill();
+            }
+        }
+
+        // --- Harmonic preview: Lissajous curves ---
+        function drawHarmonicPreview(ctx, W, H, t) {
+            const cx = W / 2;
+            const cy = H * 0.45;
+            const r = Math.min(W, H) * 0.28;
+            const freqA = 3;
+            const freqB = 2;
+            const pts = 300;
+
+            for (let layer = 0; layer < 3; layer++) {
+                const alpha = 0.7 - layer * 0.2;
+                ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+                ctx.lineWidth = 1.4 - layer * 0.3;
+
+                const phaseOff = layer * 0.5 + t * 0.4;
+                ctx.beginPath();
+                for (let i = 0; i <= pts; i++) {
+                    const a = (i / pts) * Math.PI * 2 * freqB;
+                    const x = cx + Math.sin(a * freqA / freqB + phaseOff) * r * 0.85;
+                    const y = cy + Math.sin(a + phaseOff * 0.6) * r * 0.7;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // --- Ridgeline preview: stacked scrolling lines ---
+        function drawRidgelinePreview(ctx, W, H, t) {
+            const numLines = 7;
+            const spacing = H * 0.65 / (numLines + 1);
+            const topY = H * 0.12;
+            const margin = W * 0.15;
+            const w = W - margin * 2;
+
+            for (let i = 0; i < numLines; i++) {
+                const baseY = topY + spacing * (i + 1);
+                const alpha = 0.25 + 0.75 * (i / (numLines - 1));
+                const pts = 40;
+
+                // Fill for occlusion
+                ctx.fillStyle = '#2A1530';
+                ctx.beginPath();
+                ctx.moveTo(margin, baseY);
+                for (let j = 0; j <= pts; j++) {
+                    const pct = j / pts;
+                    const x = margin + pct * w;
+                    // Animated peaks using time offset per line
+                    const peak = Math.sin(pct * Math.PI * (2.5 + i * 0.6) + i * 1.1 + t * 0.8) * 0.5 + 0.5;
+                    const envelope = Math.sin(pct * Math.PI);
+                    const y = baseY - peak * envelope * spacing * 1.2;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(margin + w, baseY + spacing * 0.5);
+                ctx.lineTo(margin, baseY + spacing * 0.5);
+                ctx.closePath();
+                ctx.fill();
+
+                // Stroke
+                ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(margin, baseY);
+                for (let j = 0; j <= pts; j++) {
+                    const pct = j / pts;
+                    const x = margin + pct * w;
+                    const peak = Math.sin(pct * Math.PI * (2.5 + i * 0.6) + i * 1.1 + t * 0.8) * 0.5 + 0.5;
+                    const envelope = Math.sin(pct * Math.PI);
+                    const y = baseY - peak * envelope * spacing * 1.2;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
             }
         }
 
